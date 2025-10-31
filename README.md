@@ -140,28 +140,55 @@ Implementati i seguenti metodi professionali:
 
 ---
 
-## 📝 Caso di Studio: M.D.L. Srl
+## 📝 Caso di Studio: M.D.L. Srl ✅ **DATI REALI**
 
-### Dati Aziendali
+### Dati Aziendali (Estratti da PDF XBRL)
 - **Ragione Sociale**: M.D.L. Srl
 - **Forma Giuridica**: Società a responsabilità limitata
 - **Settore**: Affitto e gestione di terreni per telecomunicazioni (ATECO 68.20.01)
-- **Capitale Sociale**: €10.000
+- **Capitale Sociale**: **€92.000** ✅
 - **Quota da Valutare**: 37,5% (quota di minoranza)
+- **Sede**: Via Adriatica, 5 - Roseto degli Abruzzi (TE)
+- **P.IVA**: 01468160674
 
-### Bilanci Storici Caricati
-- **2022**: Ricavi €45.000, Patrimonio Netto €35.000
-- **2023**: Ricavi €48.000, Patrimonio Netto €42.000
-- **2024**: Ricavi €52.000, Patrimonio Netto €49.000
-- **30/09/2025** (infrannuale): Ricavi €39.000, Patrimonio Netto €54.000
+### Bilanci Reali Estratti da PDF (2022-2024)
 
-### Esempio di Valutazione
-Con **Metodo Misto** e **quota 37,5%**:
-- Patrimonio Netto 2024: €49.000
-- Reddito Normalizzato (media 3 anni): €7.000
-- Valore Capitale Economico (reddito/10%): €70.000
-- Valore Equity Medio: €59.500
-- **Valore Quota 37,5%**: €22.312 (range €20.081 - €24.544)
+#### **2022** - Perdita da Oneri Finanziari
+- Patrimonio Netto: €430.664
+- Ricavi vendite: €0 (holding finanziaria)
+- Altri ricavi: €15
+- Proventi da partecipazioni: €1.119
+- Oneri finanziari: €4.443 (prestito a RS4 SRL)
+- **Risultato esercizio: -€8.428** ❌
+- Liquidità: €9.999
+
+#### **2023** - Attività Minima
+- Patrimonio Netto: €430.382
+- Altri ricavi: €1 (attività ridotta)
+- **Risultato esercizio: -€281** ⚠️
+- Liquidità: €7.490
+- Perdita riportata a nuovo
+
+#### **2024** - Ritorno Profittabilità! 
+- Patrimonio Netto: €443.959
+- Proventi finanziari: €14.016 (stimati)
+- **Risultato esercizio: +€13.576** ✅
+- Liquidità: €6.538
+- Debiti: €86.118 (aumento significativo)
+- Destinazione utile: €281 copertura perdita + €12.626 riserva straordinaria
+
+### Trend Triennale
+| Anno | Patrimonio Netto | Risultato | ROE |
+|------|------------------|-----------|-----|
+| 2022 | €430.664 | -€8.428 | -1,96% |
+| 2023 | €430.382 | -€281 | -0,07% |
+| 2024 | €443.959 | +€13.576 | +3,06% |
+
+### Analisi Sintetica
+- ⚠️ **Holding finanziaria** con immobilizzazioni €437.421
+- ⚠️ **No ricavi operativi** - proventi da partecipazioni
+- ✅ **Ripresa redditività** nel 2024
+- ⚠️ **Liquidità in calo** ma patrimonio in crescita
 
 ---
 
@@ -735,6 +762,6 @@ Questa piattaforma rappresenta un **strumento professionale completo** per la re
 ---
 
 **Data Creazione**: 31 Ottobre 2025
-**Ultima Modifica**: 31 Ottobre 2025 (🆕 Added AI PDF Parsing)
-**Versione**: 1.1.0 - AI-Powered MVP
-**Status**: ✅ Produzione - Funzionante + AI Parsing
+**Ultima Modifica**: 31 Ottobre 2025 (🆕 Real Data M.D.L. Srl Inserted)
+**Versione**: 1.2.0 - AI-Powered + Real Data
+**Status**: ✅ Produzione - Database con Bilanci Reali XBRL
