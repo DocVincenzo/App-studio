@@ -254,9 +254,53 @@ export function generateReportHTML(data: any): string {
         </p>
     </div>
 
+    <!-- SEZIONE 1: PREMESSA E IDENTIFICAZIONE DELL'INCARICO -->
+    <div class="section">
+        <div class="section-title">1. PREMESSA E IDENTIFICAZIONE DELL'INCARICO</div>
+        
+        <div class="subsection-title">1.1 Identificazione delle Parti</div>
+        <table class="info-table">
+            <tr>
+                <td style="width: 35%;"><strong>Esperto Valutatore:</strong></td>
+                <td>[Nome Professionista], Dottore Commercialista</td>
+            </tr>
+            <tr>
+                <td><strong>Società Valutata:</strong></td>
+                <td>${company.ragione_sociale}, ${company.forma_giuridica}</td>
+            </tr>
+            <tr>
+                <td><strong>Quota valutata:</strong></td>
+                <td><strong>${formatPercent(params.percentuale_quota)}</strong> del capitale sociale</td>
+            </tr>
+            <tr>
+                <td><strong>Data di riferimento:</strong></td>
+                <td>${formatDate(statements[statements.length - 1].data_riferimento)}</td>
+            </tr>
+        </table>
+
+        <div class="subsection-title" style="margin-top: 30px;">1.3 Dichiarazioni del Valutatore</div>
+        <p>Il sottoscritto valutatore dichiara:</p>
+        <ul style="line-height: 1.8;">
+            <li>Di possedere <strong>competenza tecnica ed esperienza adeguate</strong> per lo svolgimento dell'incarico di valutazione</li>
+            <li>Di operare con <strong>indipendenza e obiettività professionale</strong> secondo i principi deontologici</li>
+            <li>Di aderire ai <strong>Principi Italiani di Valutazione (PIV)</strong> e al Codice Etico IVSC</li>
+            <li>Di non avere <strong>conflitti di interesse</strong> in relazione all'oggetto della valutazione</li>
+        </ul>
+
+        <div class="subsection-title" style="margin-top: 30px;">1.4 Configurazione di Valore</div>
+        <div style="background-color: #f0f9ff; border-left: 4px solid #0284c7; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; line-height: 1.8;">
+                La presente valutazione determina il <strong>valore intrinseco/fondamentale</strong> 
+                come definito dai <strong>PIV III.2.1</strong>, che rappresenta il valore dell'attività calcolato mediante 
+                l'applicazione di metodi e procedure valutative generalmente accettati, senza considerazione 
+                di condizioni speciali o particolari.
+            </p>
+        </div>
+    </div>
+
     <!-- EXECUTIVE SUMMARY -->
     <div class="section">
-        <div class="section-title">1. Executive Summary</div>
+        <div class="section-title">2. Executive Summary</div>
         <p>
             La presente relazione di valutazione ha per oggetto la determinazione del valore economico
             di una quota pari al <strong>${params.percentuale_quota}%</strong> del capitale sociale di
@@ -284,9 +328,9 @@ export function generateReportHTML(data: any): string {
 
     <!-- INFORMAZIONI SULLA SOCIETÀ -->
     <div class="section">
-        <div class="section-title">2. Informazioni sulla Società</div>
+        <div class="section-title">3. Informazioni sulla Società</div>
         
-        <div class="subsection-title">2.1 Dati Anagrafici</div>
+        <div class="subsection-title">3.1 Dati Anagrafici</div>
         <table class="info-table">
             <tr>
                 <td>Ragione Sociale:</td>
@@ -310,7 +354,7 @@ export function generateReportHTML(data: any): string {
             </tr>
         </table>
         
-        <div class="subsection-title">2.2 Oggetto della Valutazione</div>
+        <div class="subsection-title">3.2 Oggetto della Valutazione</div>
         <p>
             La presente valutazione ha per oggetto la determinazione del fair value di una partecipazione
             pari al ${params.percentuale_quota}% del capitale sociale della società. Trattandosi di una
@@ -321,9 +365,9 @@ export function generateReportHTML(data: any): string {
 
     <!-- ANALISI ECONOMICO-FINANZIARIA -->
     <div class="section">
-        <div class="section-title">3. Analisi Economico-Finanziaria</div>
+        <div class="section-title">4. Analisi Economico-Finanziaria</div>
         
-        <div class="subsection-title">3.1 Bilanci Storici e Situazioni Contabili</div>
+        <div class="subsection-title">4.1 Bilanci Storici e Situazioni Contabili</div>
         <p>L'analisi si è basata sui seguenti bilanci d'esercizio e situazioni contabili:</p>
         
         <table class="financial-table">
@@ -365,7 +409,7 @@ export function generateReportHTML(data: any): string {
             </tbody>
         </table>
         
-        <div class="subsection-title">3.2 Indici di Bilancio</div>
+        <div class="subsection-title">4.2 Indici di Bilancio</div>
         <table class="info-table">
             <tr>
                 <td>ROE (Return on Equity):</td>
@@ -398,9 +442,9 @@ export function generateReportHTML(data: any): string {
 
     <!-- METODOLOGIA DI VALUTAZIONE -->
     <div class="section">
-        <div class="section-title">4. Metodologia di Valutazione</div>
+        <div class="section-title">5. Metodologia di Valutazione</div>
         
-        <div class="subsection-title">4.1 Parametri di Valutazione</div>
+        <div class="subsection-title">5.1 Parametri di Valutazione</div>
         <table class="info-table">
             <tr>
                 <td>Metodo di Valutazione:</td>
@@ -442,22 +486,54 @@ export function generateReportHTML(data: any): string {
             ` : ''}
         </table>
         
-        <div class="subsection-title">4.2 Metodologia Applicata</div>
+        <div class="subsection-title">5.2 Metodologia Applicata</div>
         ${renderMethodologyExplanation(params.metodo_principale, result)}
         
         ${params.dloc_percentuale > 0 || params.dlom_percentuale > 0 ? `
-        <div class="subsection-title">4.3 Motivazioni Discount Applicati</div>
+        <div class="subsection-title">5.3 Applicazione Premi e Sconti (DLOC/DLOM)</div>
+        
+        <p style="margin-bottom: 20px; line-height: 1.8;">
+            In conformità ai <strong>PIV III.3.7</strong> (Livelli di valore) e <strong>PIV III.3.8</strong> (Sconto per illiquidità),
+            si applicano i seguenti premi/sconti per riflettere la natura della quota valutata:
+        </p>
+        
         ${params.dloc_percentuale > 0 ? `
-        <div class="highlight-box">
-            <strong>DLOC (Discount for Lack of Control): ${formatPercent(params.dloc_percentuale)}</strong><br>
-            <em>Motivazione:</em> ${params.dloc_motivazione || 'Quota di minoranza senza potere di controllo effettivo.'}
+        <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0; color: #92400e;">Sconto per Mancanza di Controllo (DLOC)</h4>
+            <table class="info-table">
+                <tr>
+                    <td style="width: 30%;"><strong>Percentuale applicata:</strong></td>
+                    <td>${formatPercent(params.dloc_percentuale)}</td>
+                </tr>
+                <tr>
+                    <td><strong>Motivazione:</strong></td>
+                    <td>${params.dloc_motivazione || 'Quota di minoranza senza diritti di controllo sulla gestione sociale e impossibilità di influenzare le decisioni strategiche'}</td>
+                </tr>
+                <tr>
+                    <td><strong>Riferimenti normativi:</strong></td>
+                    <td><strong>PIV III.3.7</strong> - Livelli di valore, studi empirici Mergerstat/Stout Restricted Stock/Control Premium</td>
+                </tr>
+            </table>
         </div>
         ` : ''}
         
         ${params.dlom_percentuale > 0 ? `
-        <div class="highlight-box">
-            <strong>DLOM (Discount for Lack of Marketability): ${formatPercent(params.dlom_percentuale)}</strong><br>
-            <em>Motivazione:</em> ${params.dlom_motivazione || 'Assenza di mercato attivo per la partecipazione.'}
+        <div style="background-color: #fee2e2; border-left: 4px solid #dc2626; padding: 15px; margin: 20px 0;">
+            <h4 style="margin: 0 0 10px 0; color: #991b1b;">Sconto per Illiquidità (DLOM)</h4>
+            <table class="info-table">
+                <tr>
+                    <td style="width: 30%;"><strong>Percentuale applicata:</strong></td>
+                    <td>${formatPercent(params.dlom_percentuale)}</td>
+                </tr>
+                <tr>
+                    <td><strong>Motivazione:</strong></td>
+                    <td>${params.dlom_motivazione || 'Società non quotata, assenza di mercato organizzato, difficoltà di realizzo e tempi di smobilizzo elevati'}</td>
+                </tr>
+                <tr>
+                    <td><strong>Riferimenti normativi:</strong></td>
+                    <td><strong>PIV III.3.8</strong> - Sconto per illiquidità, studi FMV Opinions/Pluris Valuation/Emory Pre-IPO</td>
+                </tr>
+            </table>
         </div>
         ` : ''}
         ` : ''}
@@ -465,9 +541,9 @@ export function generateReportHTML(data: any): string {
 
     <!-- RISULTATI DELLA VALUTAZIONE -->
     <div class="section">
-        <div class="section-title">5. Risultati della Valutazione</div>
+        <div class="section-title">6. Risultati della Valutazione</div>
         
-        <div class="subsection-title">5.1 Sintesi dei Risultati</div>
+        <div class="subsection-title">6.1 Sintesi dei Risultati</div>
         <table class="info-table">
             <tr>
                 <td>Valore Equity (100%):</td>
@@ -491,7 +567,7 @@ export function generateReportHTML(data: any): string {
             </tr>
         </table>
         
-        <div class="subsection-title">5.2 Analisi di Sensibilità</div>
+        <div class="subsection-title">6.2 Analisi di Sensibilità</div>
         <p>
             L'analisi di sensibilità fornisce un range di valori al variare delle principali assunzioni:
         </p>
@@ -509,7 +585,7 @@ export function generateReportHTML(data: any): string {
 
     <!-- CONCLUSIONI -->
     <div class="section">
-        <div class="section-title">6. Conclusioni</div>
+        <div class="section-title">7. Conclusioni</div>
         <p>
             Sulla base dell'analisi condotta e dell'applicazione del metodo <strong>${getMetodoLabel(params.metodo_principale)}</strong>,
             il valore economico della quota pari al ${formatPercent(params.percentuale_quota)} del capitale sociale
@@ -524,23 +600,76 @@ export function generateReportHTML(data: any): string {
             </div>
         </div>
         
-        <p>
-            La presente stima è stata redatta in conformità ai principi di valutazione generalmente accettati
-            (OIV/PIV/IVS) e riflette le condizioni di mercato e i dati economico-finanziari disponibili
-            alla data di valutazione.
+        <p style="margin-top: 30px; line-height: 1.8;">
+            La presente stima è stata redatta in conformità ai <strong>Principi Italiani di Valutazione (PIV)</strong> 
+            emessi dall'Organismo Italiano di Valutazione (OIV) e agli <strong>International Valuation Standards (IVS)</strong> 
+            dell'International Valuation Standards Council (IVSC), riflettendo le condizioni di mercato e i dati 
+            economico-finanziari disponibili alla data di valutazione.
         </p>
+        
+        <div class="subsection-title" style="margin-top: 40px;">7.1 Valore Stimato della Quota</div>
+        <div style="background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: white; padding: 30px; border-radius: 10px; text-align: center; margin: 30px 0;">
+            <p style="margin: 0 0 10px 0; font-size: 14px;">
+                Il valore della quota pari al <strong>${formatPercent(params.percentuale_quota)}</strong> 
+                del capitale sociale della società <strong>${company.ragione_sociale}</strong> 
+                alla data del <strong>${formatDate(statements[statements.length - 1].data_riferimento)}</strong> 
+                è stimato in:
+            </p>
+            <h2 style="font-size: 36px; font-weight: bold; margin: 20px 0; color: #fbbf24;">
+                ${formatCurrency(result.result.valore_quota_centrale)}
+            </h2>
+            <p style="margin: 0; color: #cbd5e1; font-size: 14px;">
+                (corrispondente a un range di ${formatCurrency(result.result.valore_quota_min)} - 
+                ${formatCurrency(result.result.valore_quota_max)})
+            </p>
+        </div>
+        
+        <div class="subsection-title" style="margin-top: 40px;">7.2 Limitazioni e Disclaimer</div>
+        <ol style="line-height: 2;">
+            <li><strong>Limitazioni temporali:</strong> La valutazione è riferita alla specifica data di riferimento 
+                ${formatDate(statements[statements.length - 1].data_riferimento)} e può non riflettere condizioni future o variazioni 
+                significative successive.</li>
+            <li><strong>Base informativa:</strong> I risultati dipendono dalla completezza e accuratezza 
+                delle informazioni contabili fornite. Non è stata effettuata due diligence indipendente 
+                su asset, passività o contingenze.</li>
+            <li><strong>Assunzioni prospettiche:</strong> Le proiezioni future contenute nel metodo DCF sono soggette 
+                a incertezza intrinseca e possono differire significativamente dai risultati effettivi.</li>
+            <li><strong>Finalità specifica:</strong> La validità della valutazione è limitata agli scopi dichiarati 
+                e non può essere utilizzata per finalità diverse senza preventiva autorizzazione scritta.</li>
+            <li><strong>Standard seguiti:</strong> La valutazione è conforme ai <strong>Principi Italiani di Valutazione (PIV)</strong> 
+                e agli <strong>International Valuation Standards (IVS)</strong> nella versione vigente alla data della valutazione.</li>
+            <li><strong>Non è una raccomandazione:</strong> La valutazione non costituisce una sollecitazione 
+                all'acquisto o alla vendita della partecipazione. Il valore effettivo di transazione può differire.</li>
+        </ol>
+
+        <div class="subsection-title" style="margin-top: 40px;">7.3 Dichiarazioni Finali</div>
+        <p>Il sottoscritto valutatore dichiara:</p>
+        <ul style="line-height: 2;">
+            <li>Di aver svolto la valutazione in <strong>piena indipendenza e obiettività</strong></li>
+            <li>Di aver applicato metodologie conformi ai <strong>Principi Italiani di Valutazione (PIV)</strong></li>
+            <li>Di non avere <strong>interessi diretti o indiretti</strong> nell'operazione oggetto di valutazione</li>
+            <li>Di aver rispettato il <strong>Codice Etico dell'International Valuation Standards Council (IVSC)</strong></li>
+        </ul>
+
+        <div style="margin-top: 80px; padding-top: 30px; border-top: 3px solid #1e40af;">
+            <p style="margin-bottom: 5px;"><strong>Data:</strong> ${new Date().toLocaleDateString('it-IT')}</p>
+            
+            <div style="margin-top: 60px;">
+                <p style="margin-bottom: 0;"><strong>Il Valutatore</strong></p>
+                <div style="margin-top: 80px; border-top: 1px solid #000; width: 350px; padding-top: 5px;">
+                    <p style="margin: 0; font-size: 12px; color: #64748b;">[Firma e timbro]</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <!-- DISCLAIMER -->
-    <div class="disclaimer">
-        <strong>DISCLAIMER E LIMITAZIONI</strong><br><br>
-        La presente relazione è stata redatta esclusivamente per lo scopo indicato e non può essere utilizzata
-        per altri fini senza il consenso scritto del valutatore. La valutazione riflette le condizioni di mercato
-        e le informazioni disponibili alla data di redazione. Il valutatore non si assume responsabilità per eventi
-        o circostanze che possano verificarsi successivamente alla data di valutazione. I dati utilizzati sono stati
-        forniti dal cliente e si assume che siano accurati e completi. La valutazione non costituisce una raccomandazione
-        all'acquisto o alla vendita della partecipazione. Il valore effettivo della transazione può differire dalla
-        stima in funzione delle condizioni di mercato, delle modalità di negoziazione e di altri fattori specifici.
+    <!-- FOOTER CONFORMITÀ -->
+    <div style="margin-top: 60px; padding: 20px; background-color: #f8fafc; border: 1px solid #cbd5e1; text-align: center;">
+        <p style="margin: 0; font-size: 11px; color: #64748b; line-height: 1.6;">
+            <em>Documento conforme ai <strong>Principi Italiani di Valutazione (PIV)</strong> emessi dall'Organismo Italiano di Valutazione (OIV),<br/>
+            agli <strong>International Valuation Standards (IVS)</strong> dell'International Valuation Standards Council (IVSC)<br/>
+            e alle best practices internazionali in materia di valutazione d'azienda.</em>
+        </p>
     </div>
 
     <!-- FOOTER -->
