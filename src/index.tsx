@@ -3,6 +3,7 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { calculateValuation, calculateIndices, sensitivityAnalysis, type FinancialData, type ValuationParams } from './valuation-engine'
 import { processPDFBilancio, validateParsedData } from './pdf-parser'
+import { generateReportHTML } from './pdf-template'
 
 type Bindings = {
   DB: D1Database;
@@ -398,6 +399,102 @@ app.get('/api/valuations', async (c) => {
   `).all()
   
   return c.json(results)
+})
+
+// ====================
+// PDF REPORT GENERATION
+// ====================
+
+app.post('/api/valuations/:id/report', async (c) => {
+  try {
+    const id = c.req.param('id')
+    
+    // Get valuation data
+    const valuation = await c.env.DB.prepare(
+      'SELECT * FROM valuations WHERE id = ?'
+    ).bind(id).first()
+    
+    if (!valuation) {
+      return c.json({ error: 'Valuation not found' }, 404)
+    }
+    
+    // Get company data
+    const company = await c.env.DB.prepare(
+      'SELECT * FROM companies WHERE id = ?'
+    ).bind(valuation.company_id).first()
+    
+    // Get financial statements
+    const { results: statements } = await c.env.DB.prepare(
+      'SELECT * FROM financial_statements WHERE company_id = ? ORDER BY anno'
+    ).bind(valuation.company_id).all()
+    
+    // Prepare data for template
+    const reportData = {
+      company,
+      params: {
+        metodo_principale: valuation.metodo_principale,
+        percentuale_quota: valuation.percentuale_quota,
+        tasso_capitalizzazione: valuation.tasso_capitalizzazione,
+        wacc: valuation.wacc,
+        tasso_crescita: valuation.tasso_crescita,
+        dloc_percentuale: valuation.dloc_percentuale || 0,
+        dloc_motivazione: valuation.dloc_motivazione,
+        dlom_percentuale: valuation.dlom_percentuale || 0,
+        dlom_motivazione: valuation.dlom_motivazione
+      },
+      result: {
+        result: {
+          valore_quota_min: valuation.valore_quota_min,
+          valore_quota_centrale: valuation.valore_quota_centrale,
+          valore_quota_max: valuation.valore_quota_max,
+          valore_azienda_pre_discount: valuation.valore_azienda_pre_discount,
+          valore_equity_post_discount: valuation.valore_equity_post_discount,
+          patrimonio_netto_contabile: valuation.patrimonio_netto_contabile,
+          reddito_normalizzato: valuation.reddito_normalizzato,
+          enterprise_value: valuation.enterprise_value,
+          indici: JSON.parse(valuation.indici_json || '{}')
+        },
+        params: {
+          tasso_capitalizzazione: valuation.tasso_capitalizzazione,
+          wacc: valuation.wacc,
+          tasso_crescita: valuation.tasso_crescita
+        }
+      },
+      statements: statements.slice(-3) // Last 3 years
+    }
+    
+    // Generate HTML
+    const html = generateReportHTML(reportData)
+    
+    // Return HTML (client will print to PDF or convert)
+    return c.html(html)
+    
+  } catch (error: any) {
+    console.error('Error generating report:', error)
+    return c.json({ error: error.message }, 500)
+  }
+})
+
+// Generate PDF report for current wizard data (not saved yet)
+app.post('/api/generate-report', async (c) => {
+  try {
+    const body = await c.req.json()
+    const { company, params, result, statements } = body
+    
+    const reportData = {
+      company,
+      params,
+      result,
+      statements: statements.slice(-3)
+    }
+    
+    const html = generateReportHTML(reportData)
+    return c.html(html)
+    
+  } catch (error: any) {
+    console.error('Error generating report:', error)
+    return c.json({ error: error.message }, 500)
+  }
 })
 
 // ====================

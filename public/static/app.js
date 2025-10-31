@@ -877,23 +877,78 @@ function renderStep5_Report() {
   `;
 }
 
-function generatePDF() {
-  alert('Generazione PDF in sviluppo. Attualmente disponibile il download dei dati in JSON.');
-  
-  const reportData = {
-    company: valuationData.company,
-    params: valuationData.params,
-    result: valuationData.result,
-    generated_at: new Date().toISOString()
+async function generatePDF() {
+  try {
+    // Show loading message
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Generazione in corso...';
+    btn.disabled = true;
+    
+    // Prepare report data
+    const reportData = {
+      company: valuationData.company,
+      params: valuationData.params,
+      result: valuationData.result,
+      statements: valuationData.statements
+    };
+    
+    // Call API to generate HTML report
+    const response = await axios.post('/api/generate-report', reportData, {
+      responseType: 'text'
+    });
+    
+    // Open HTML in new window for printing to PDF
+    const printWindow = window.open('', '_blank', 'width=900,height=800');
+    printWindow.document.write(response.data);
+    printWindow.document.close();
+    
+    // Wait a bit for content to load, then trigger print dialog
+    setTimeout(() => {
+      printWindow.focus();
+      printWindow.print();
+    }, 500);
+    
+    // Restore button
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+    
+    // Show success message
+    showNotification('Report generato! Usa il dialog di stampa per salvare come PDF.', 'success');
+    
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    showNotification('Errore nella generazione del report: ' + error.message, 'error');
+    
+    // Restore button
+    const btn = event.target;
+    btn.innerHTML = '<i class="fas fa-download mr-2"></i>Genera e Scarica Report PDF';
+    btn.disabled = false;
+  }
+}
+
+function showNotification(message, type = 'info') {
+  const colors = {
+    success: 'bg-green-500',
+    error: 'bg-red-500',
+    info: 'bg-blue-500'
   };
   
-  const dataStr = JSON.stringify(reportData, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `valutazione_${valuationData.company.ragione_sociale}_${new Date().toISOString().split('T')[0]}.json`;
-  link.click();
+  const notification = document.createElement('div');
+  notification.className = `fixed top-4 right-4 ${colors[type]} text-white px-6 py-4 rounded-lg shadow-lg z-50 animate-fade-in`;
+  notification.innerHTML = `
+    <div class="flex items-center gap-3">
+      <i class="fas ${type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'} text-xl"></i>
+      <span>${message}</span>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.style.opacity = '0';
+    setTimeout(() => notification.remove(), 300);
+  }, 5000);
 }
 
 // =========================
