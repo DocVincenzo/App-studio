@@ -182,12 +182,12 @@ app.post('/api/companies/:id/statements/upload-pdf', async (c) => {
     // Validazione dati parsati
     const validation = validateParsedData(parsedData)
     
-    // Salva nel database documents
+    // Salva nel database documents (collegato alla company, non alla valuation)
     const docResult = await c.env.DB.prepare(`
-      INSERT INTO documents (valuation_id, tipo, nome_file, dimensione, mime_type, url_storage)
+      INSERT INTO documents (company_id, tipo, nome_file, dimensione, mime_type, url_storage)
       VALUES (?, 'bilancio', ?, ?, 'application/pdf', ?)
     `).bind(
-      null, // valuation_id sarà aggiunto dopo
+      companyId,
       file.name,
       file.size,
       filename
