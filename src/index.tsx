@@ -90,7 +90,7 @@ app.post('/api/companies/:id/statements', async (c) => {
   
   const result = await c.env.DB.prepare(`
     INSERT INTO financial_statements (
-      company_id, anno, tipo, data_riferimento,
+      company_id, anno, tipo, periodo_riferimento, data_riferimento,
       immobilizzazioni_immateriali, immobilizzazioni_materiali, immobilizzazioni_finanziarie,
       attivo_circolante_rimanenze, attivo_circolante_crediti, attivo_circolante_liquidita,
       ratei_risconti_attivi,
@@ -101,11 +101,12 @@ app.post('/api/companies/:id/statements', async (c) => {
       costi_godimento_beni_terzi, costi_personale, ammortamenti_svalutazioni,
       accantonamenti, oneri_diversi_gestione, proventi_finanziari, oneri_finanziari,
       rettifiche_valore_attivita_finanziarie, proventi_oneri_straordinari, imposte_esercizio
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     body.anno,
     body.tipo,
+    body.periodo_riferimento || 'Annuale',
     body.data_riferimento,
     body.immobilizzazioni_immateriali || 0,
     body.immobilizzazioni_materiali || 0,

@@ -323,14 +323,18 @@ export function generateReportHTML(data: any): string {
     <div class="section">
         <div class="section-title">3. Analisi Economico-Finanziaria</div>
         
-        <div class="subsection-title">3.1 Bilanci Storici</div>
-        <p>L'analisi si è basata sui seguenti bilanci d'esercizio:</p>
+        <div class="subsection-title">3.1 Bilanci Storici e Situazioni Contabili</div>
+        <p>L'analisi si è basata sui seguenti bilanci d'esercizio e situazioni contabili:</p>
         
         <table class="financial-table">
             <thead>
                 <tr>
                     <th>Voce</th>
-                    ${statements.map((s: any) => `<th>${s.anno}</th>`).join('')}
+                    ${statements.map((s: any) => `
+                        <th>
+                            ${s.anno}${s.tipo === 'infrannuale' ? `<br/><span style="font-size: 10px; color: #2563eb; font-weight: normal;">(Infrannuale ${s.periodo_riferimento || ''})</span>` : ''}
+                        </th>
+                    `).join('')}
                 </tr>
             </thead>
             <tbody>

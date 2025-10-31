@@ -50,8 +50,9 @@ function validateStep(step) {
       }
       return true;
     case 2: // Financial statements
-      if (valuationData.statements.length < 3) {
-        alert('Sono necessari almeno 3 bilanci annuali per la valutazione');
+      const annuali = valuationData.statements.filter(s => s.tipo === 'annuale').length;
+      if (annuali < 3) {
+        alert('Sono necessari almeno 3 bilanci annuali per la valutazione. Puoi aggiungere situazioni infrannuali opzionali.');
         return false;
       }
       return true;
@@ -281,17 +282,23 @@ async function createCompany() {
 
 function renderStep2_Statements() {
   return `
-    <h2 class="text-2xl font-bold mb-6">Bilanci d'Esercizio</h2>
+    <h2 class="text-2xl font-bold mb-6">Bilanci d'Esercizio e Situazioni Contabili</h2>
     <p class="text-gray-600 mb-6">
-      Inserisci i dati dei bilanci degli ultimi 3 anni (2022, 2023, 2024) 
-      e la situazione infrannuale al 30/09/2025 (se disponibile)
+      Inserisci i dati dei bilanci annuali degli ultimi 3 anni (2022, 2023, 2024) 
+      e, opzionalmente, le situazioni contabili infrannuali/parziali più recenti.
+      Le situazioni infrannuali saranno considerate nel calcolo della valutazione finale.
     </p>
 
     <div class="mb-6">
       <h3 class="font-bold text-lg mb-4">Bilanci Inseriti: ${valuationData.statements.length}</h3>
       ${valuationData.statements.length > 0 ? valuationData.statements.map(s => `
-        <div class="p-3 bg-gray-50 rounded mb-2 flex justify-between items-center">
-          <span><strong>${s.anno}</strong> - ${s.tipo} (${s.data_riferimento})</span>
+        <div class="p-3 ${s.tipo === 'infrannuale' ? 'bg-blue-50 border-l-4 border-blue-400' : 'bg-gray-50'} rounded mb-2 flex justify-between items-center">
+          <span>
+            <strong>${s.anno}</strong> - 
+            <span class="${s.tipo === 'infrannuale' ? 'text-blue-700 font-semibold' : ''}">${s.tipo === 'infrannuale' ? 'Infrannuale' : 'Annuale'}</span>
+            ${s.periodo_riferimento && s.periodo_riferimento !== 'Annuale' ? `<span class="text-xs bg-blue-200 text-blue-800 px-2 py-1 rounded ml-1">${s.periodo_riferimento}</span>` : ''}
+            (${s.data_riferimento})
+          </span>
           <span class="text-sm">Patrimonio Netto: €${formatNumber(s.patrimonio_netto)}</span>
         </div>
       `).join('') : '<p class="text-gray-500 italic">Nessun bilancio inserito</p>'}
@@ -368,22 +375,37 @@ function renderStep2_Statements() {
 function renderStatementForm() {
   return `
     <h3 class="font-bold text-lg mb-4">Nuovo Bilancio</h3>
-    <div class="grid md:grid-cols-3 gap-4 mb-4">
+    <div class="grid md:grid-cols-4 gap-4 mb-4">
       <div>
         <label class="block font-semibold mb-2">Anno *</label>
         <input type="number" id="stmt-anno" class="w-full border rounded px-4 py-2" placeholder="2024">
       </div>
       <div>
         <label class="block font-semibold mb-2">Tipo *</label>
-        <select id="stmt-tipo" class="w-full border rounded px-4 py-2">
+        <select id="stmt-tipo" class="w-full border rounded px-4 py-2" onchange="togglePeriodoRiferimento()">
           <option value="annuale">Annuale</option>
-          <option value="infrannuale">Infrannuale</option>
+          <option value="infrannuale">Infrannuale / Situazione Contabile Parziale</option>
+        </select>
+      </div>
+      <div id="periodo-riferimento-container" class="hidden">
+        <label class="block font-semibold mb-2">Periodo *</label>
+        <select id="stmt-periodo" class="w-full border rounded px-4 py-2">
+          <option value="Q1">Q1 (trimestre)</option>
+          <option value="Q2">Q2 (semestre)</option>
+          <option value="Q3">Q3 (9 mesi)</option>
+          <option value="9M" selected>9M (9 mesi)</option>
+          <option value="6M">6M (semestre)</option>
+          <option value="Altro">Altro</option>
         </select>
       </div>
       <div>
         <label class="block font-semibold mb-2">Data Riferimento *</label>
         <input type="date" id="stmt-data" class="w-full border rounded px-4 py-2">
       </div>
+    </div>
+    <div id="infra-notice" class="hidden mb-4 p-3 bg-blue-50 border-l-4 border-blue-500 text-blue-700 text-sm">
+      <i class="fas fa-info-circle mr-2"></i>
+      <strong>Bilancio infrannuale:</strong> I dati reddituali saranno annualizzati automaticamente per il calcolo della valutazione.
     </div>
 
     <h4 class="font-bold mt-6 mb-3">Stato Patrimoniale - Attivo (€)</h4>
@@ -474,10 +496,28 @@ function showAddStatementForm() {
   document.getElementById('add-statement-form').classList.toggle('hidden');
 }
 
+function togglePeriodoRiferimento() {
+  const tipo = document.getElementById('stmt-tipo').value;
+  const periodoContainer = document.getElementById('periodo-riferimento-container');
+  const infraNotice = document.getElementById('infra-notice');
+  
+  if (tipo === 'infrannuale') {
+    periodoContainer?.classList.remove('hidden');
+    infraNotice?.classList.remove('hidden');
+  } else {
+    periodoContainer?.classList.add('hidden');
+    infraNotice?.classList.add('hidden');
+  }
+}
+
 async function addStatement() {
+  const tipo = document.getElementById('stmt-tipo').value;
   const data = {
     anno: parseInt(document.getElementById('stmt-anno').value),
-    tipo: document.getElementById('stmt-tipo').value,
+    tipo: tipo,
+    periodo_riferimento: tipo === 'infrannuale' ? 
+      (document.getElementById('stmt-periodo')?.value || '9M') : 
+      'Annuale',
     data_riferimento: document.getElementById('stmt-data').value,
     immobilizzazioni_materiali: parseFloat(document.getElementById('immob-materiali').value) || 0,
     attivo_circolante_crediti: parseFloat(document.getElementById('crediti').value) || 0,
@@ -775,9 +815,22 @@ function renderSensitivityAnalysis() {
 
 async function performCalculation() {
   try {
+    // Get 3 most recent annual statements + any interim statements
+    const annuali = valuationData.statements
+      .filter(s => s.tipo === 'annuale')
+      .sort((a, b) => b.anno - a.anno)
+      .slice(0, 3);
+    
+    const infrannuali = valuationData.statements
+      .filter(s => s.tipo === 'infrannuale')
+      .sort((a, b) => new Date(b.data_riferimento) - new Date(a.data_riferimento));
+    
+    // Combine: annual statements + most recent interim statement
+    const statementsToUse = [...annuali, ...infrannuali.slice(0, 1)];
+    
     const response = await axios.post('/api/valuations/calculate', {
       company_id: valuationData.company.id,
-      statements: valuationData.statements.filter(s => s.tipo === 'annuale').slice(0, 3),
+      statements: statementsToUse,
       params: valuationData.params
     });
     

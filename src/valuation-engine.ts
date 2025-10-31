@@ -5,6 +5,9 @@
 
 export interface FinancialData {
   anno: number;
+  tipo?: string; // 'annuale' | 'infrannuale'
+  periodo_riferimento?: string; // 'Q1', 'Q2', 'Q3', '9M', 'Annuale'
+  data_riferimento?: string;
   ricavi_vendite: number;
   ebitda: number;
   ebit: number;
@@ -81,6 +84,61 @@ export interface ValuationResult {
 }
 
 /**
+ * Annualizza i dati infrannuali per renderli comparabili
+ * I valori reddituali vengono annualizzati, i valori patrimoniali no
+ */
+function annualizeStatement(stmt: FinancialData): FinancialData {
+  // Se è annuale, ritorna così com'è
+  if (!stmt.tipo || stmt.tipo === 'annuale') {
+    return stmt;
+  }
+  
+  // Determina il fattore di annualizzazione in base al periodo
+  let annualizationFactor = 1;
+  const periodo = stmt.periodo_riferimento || '';
+  
+  if (periodo === 'Q1') {
+    annualizationFactor = 4; // 3 mesi -> 12 mesi
+  } else if (periodo === 'Q2' || periodo === '6M') {
+    annualizationFactor = 2; // 6 mesi -> 12 mesi
+  } else if (periodo === 'Q3' || periodo === '9M') {
+    annualizationFactor = 12 / 9; // 9 mesi -> 12 mesi
+  } else {
+    // Default: stima in base alla data riferimento se disponibile
+    if (stmt.data_riferimento) {
+      const dataRif = new Date(stmt.data_riferimento);
+      const mese = dataRif.getMonth() + 1; // 1-12
+      annualizationFactor = 12 / mese;
+    }
+  }
+  
+  // Annualizza solo i valori reddituali (conto economico)
+  // I valori patrimoniali (attivo, passivo) restano invariati
+  return {
+    ...stmt,
+    ricavi_vendite: stmt.ricavi_vendite * annualizationFactor,
+    ebitda: stmt.ebitda * annualizationFactor,
+    ebit: stmt.ebit * annualizationFactor,
+    utile_ante_imposte: stmt.utile_ante_imposte * annualizationFactor,
+    utile_perdita_esercizio: stmt.utile_perdita_esercizio * annualizationFactor,
+    ammortamenti_svalutazioni: stmt.ammortamenti_svalutazioni * annualizationFactor,
+    imposte_esercizio: stmt.imposte_esercizio * annualizationFactor,
+    // I valori patrimoniali NON vengono annualizzati
+    patrimonio_netto: stmt.patrimonio_netto,
+    debiti_finanziari: stmt.debiti_finanziari,
+    attivo_circolante_liquidita: stmt.attivo_circolante_liquidita,
+    totale_attivo: stmt.totale_attivo
+  };
+}
+
+/**
+ * Normalizza tutti i bilanci annualizzando quelli infrannuali
+ */
+function normalizeStatements(data: FinancialData[]): FinancialData[] {
+  return data.map(stmt => annualizeStatement(stmt));
+}
+
+/**
  * Calcola indici di bilancio
  */
 export function calculateIndices(data: FinancialData[]): any {
@@ -111,6 +169,11 @@ export function patrimonialeSemplice(
   data: FinancialData[],
   params: ValuationParams
 ): ValuationResult {
+  // Normalizza i bilanci annualizzando quelli infrannuali
+  const normalizedData = normalizeStatements(data);
+  
+  // Per il metodo patrimoniale, usa i dati più recenti disponibili
+  // (potrebbero essere infrannuali - valori patrimoniali non annualizzati)
   const latest = data[data.length - 1];
   const patrimonio_netto_contabile = latest.patrimonio_netto;
   const rettifiche = params.rettifiche_patrimoniali || 0;
@@ -135,7 +198,7 @@ export function patrimonialeSemplice(
     valore_quota_min: valore_quota * 0.9, // -10% margine prudenziale
     valore_quota_centrale: valore_quota,
     valore_quota_max: valore_quota * 1.1, // +10% margine
-    indici: calculateIndices(data)
+    indici: calculateIndices(normalizedData)
   };
 }
 
@@ -147,21 +210,28 @@ export function metodoReddituale(
   data: FinancialData[],
   params: ValuationParams
 ): ValuationResult {
-  // Calcolo reddito medio normalizzato (media ultimi 3 anni)
+  // Normalizza i bilanci annualizzando quelli infrannuali
+  const normalizedData = normalizeStatements(data);
+  
+  // Usa solo i bilanci annuali per il calcolo del reddito medio
+  // I bilanci infrannuali annualizzati servono per l'aggiornamento degli indici
+  const annualiData = normalizedData.filter(d => !d.tipo || d.tipo === 'annuale');
+  
+  // Calcolo reddito medio normalizzato (media ultimi 3 anni annuali)
   let reddito_normalizzato: number;
   
   if (params.peso_anni_recenti) {
     // Media ponderata: anno più recente ha peso maggiore
     const pesi = [1, 2, 3]; // 2022=1, 2023=2, 2024=3
     const somma_pesi = pesi.reduce((a, b) => a + b, 0);
-    reddito_normalizzato = data.reduce((sum, d, i) => 
+    reddito_normalizzato = annualiData.reduce((sum, d, i) => 
       sum + (d.utile_perdita_esercizio * pesi[i]), 0
     ) / somma_pesi;
   } else {
     // Media semplice
-    reddito_normalizzato = data.reduce((sum, d) => 
+    reddito_normalizzato = annualiData.reduce((sum, d) => 
       sum + d.utile_perdita_esercizio, 0
-    ) / data.length;
+    ) / annualiData.length;
   }
   
   // Tasso di capitalizzazione (default 10% per micro-imprese)
@@ -185,7 +255,7 @@ export function metodoReddituale(
     valore_quota_min: valore_quota * 0.85, // -15% per conservatività
     valore_quota_centrale: valore_quota,
     valore_quota_max: valore_quota * 1.15, // +15%
-    indici: calculateIndices(data)
+    indici: calculateIndices(normalizedData)
   };
 }
 
