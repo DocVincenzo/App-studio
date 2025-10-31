@@ -250,9 +250,14 @@ Apri il browser e vai su: **https://3000-ijmoru63an292mdgdg340-0e616f0a.sandbox.
   - Analisi di sensibilità (scenario base/ottimistico/pessimistico)
 - Clicca **"Salva Valutazione"** per archiviare
 
-#### Passo 5: Genera Report
-- Attualmente disponibile esportazione dati in formato JSON
-- Report PDF professionale in sviluppo
+#### Passo 5: Genera Report ✅ **NUOVO!**
+- **Report PDF Professionale** completo e stampabile
+- Clicca **"Genera e Scarica Report PDF"**
+- Sistema apre finestra con report HTML formattato
+- Dialog di stampa appare automaticamente
+- Salva come PDF tramite browser (Ctrl+P → Salva come PDF)
+- Include tutte le sezioni: Executive Summary, Analisi Finanziaria, Metodologie, Risultati, Disclaimer
+- Layout A4 professionale pronto per presentazione cliente
 
 ### 3. Consultare Storico
 - Dalla homepage clicca **"Dashboard"**
@@ -580,19 +585,21 @@ L'applicazione genera automaticamente 3 scenari:
 
 ### 🔜 Feature in Roadmap
 
-#### 1. Generatore Report PDF Professionale (Priority: High)
-- Relazione completa 25-40 pagine
-- Struttura conforme a standard OIV/PIV
-- Sezioni:
-  - Executive Summary
-  - Descrizione società e business
-  - Analisi economico-finanziaria dettagliata
-  - Metodologie applicate con formule
-  - Calcoli step-by-step
-  - Analisi sensibilità con grafici
-  - Conclusioni e range di valore
-  - Disclaimer e limitazioni
-  - Allegati (bilanci riclassificati)
+#### 1. ✅ ~~Generatore Report PDF Professionale~~ **COMPLETATO!**
+- ✅ Relazione completa 4-6 pagine formato A4
+- ✅ Struttura conforme a standard OIV/PIV
+- ✅ Sezioni implementate:
+  - ✅ Executive Summary con valore centrale
+  - ✅ Descrizione società e dati anagrafici
+  - ✅ Analisi economico-finanziaria dettagliata (tabelle 3 anni)
+  - ✅ Metodologie applicate con formule (Patrimoniale/Reddituale/DCF/Misto)
+  - ✅ Calcoli step-by-step con box evidenziati
+  - ✅ Analisi sensibilità con range min/max
+  - ✅ Conclusioni e valore finale
+  - ✅ Disclaimer e limitazioni professionali
+- ✅ Layout professionale stampabile
+- ✅ Generazione via browser (Ctrl+P → Salva PDF)
+- 🔜 Future: Allegati bilanci riclassificati, grafici analytics
 
 #### 2. Riclassificazione Bilanci Automatica
 - Stato Patrimoniale per criterio finanziario
