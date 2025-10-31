@@ -3,7 +3,26 @@
 export function generateReportHTML(data: any): string {
   const { company, params, result, statements } = data;
   
-  const formatCurrency = (val: number) => {
+  // Ensure result.result.indici exists with defaults
+  if (!result || !result.result) {
+    throw new Error('Invalid result data structure');
+  }
+  
+  if (!result.result.indici) {
+    result.result.indici = {
+      roe: 0,
+      roi: 0,
+      ros: 0,
+      ebitda_margin: 0,
+      ebit_margin: 0,
+      debt_to_equity: 0
+    };
+  }
+  
+  const formatCurrency = (val: number | null | undefined) => {
+    if (val === null || val === undefined || isNaN(val)) {
+      return '€0';
+    }
     return new Intl.NumberFormat('it-IT', { 
       style: 'currency', 
       currency: 'EUR',
@@ -12,12 +31,22 @@ export function generateReportHTML(data: any): string {
     }).format(val);
   };
   
-  const formatPercent = (val: number) => {
+  const formatPercent = (val: number | null | undefined) => {
+    if (val === null || val === undefined || isNaN(val)) {
+      return '0.00%';
+    }
     return `${val.toFixed(2)}%`;
   };
   
-  const formatDate = (date: string) => {
+  const formatDate = (date: string | null | undefined) => {
+    if (!date) {
+      return new Date().toLocaleDateString('it-IT');
+    }
     return new Date(date).toLocaleDateString('it-IT');
+  };
+  
+  const safeValue = (val: any, defaultVal: number = 0) => {
+    return val !== null && val !== undefined && !isNaN(val) ? val : defaultVal;
   };
 
   const metodiLabels: Record<string, string> = {
@@ -348,7 +377,7 @@ export function generateReportHTML(data: any): string {
             </tr>
             <tr>
                 <td>Debt/Equity Ratio:</td>
-                <td>${result.result.indici.debt_to_equity.toFixed(2)}</td>
+                <td>${safeValue(result.result.indici.debt_to_equity, 0).toFixed(2)}</td>
             </tr>
         </table>
     </div>
