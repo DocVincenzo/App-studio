@@ -55,6 +55,12 @@ export function generateReportHTML(data: any): string {
     'dcf': 'Finanziario - DCF (Discounted Cash Flow)',
     'misto': 'Misto Patrimoniale-Reddituale'
   };
+  
+  // Get method label with fallback
+  const getMetodoLabel = (metodo: string | null | undefined): string => {
+    if (!metodo) return 'Metodo non specificato';
+    return metodiLabels[metodo] || metodo.charAt(0).toUpperCase() + metodo.slice(1);
+  };
 
   return `
 <!DOCTYPE html>
@@ -243,6 +249,7 @@ export function generateReportHTML(data: any): string {
         <h2>${company.ragione_sociale}</h2>
         <p style="margin-top: 20px; font-size: 12pt;">
             <strong>Quota oggetto di valutazione:</strong> ${params.percentuale_quota}%<br>
+            <strong>Metodo di valutazione:</strong> ${getMetodoLabel(params.metodo_principale)}<br>
             <strong>Data:</strong> ${formatDate(new Date().toISOString())}
         </p>
     </div>
@@ -265,11 +272,12 @@ export function generateReportHTML(data: any): string {
             </div>
         </div>
         
-        <p>
-            La valutazione è stata condotta applicando il metodo <strong>${metodiLabels[params.metodo_principale]}</strong>,
-            in conformità ai Principi Italiani di Valutazione (PIV) emanati dall'Organismo Italiano di Valutazione (OIV)
-            e agli International Valuation Standards (IVS).
-        </p>
+        <div class="highlight-box" style="margin: 20px 0; background-color: #f0f9ff; border-left-color: #1e40af;">
+            <strong style="font-size: 13pt; color: #1e40af;">Criterio di Valutazione Adottato</strong><br><br>
+            <strong>${getMetodoLabel(params.metodo_principale)}</strong><br><br>
+            La valutazione è stata condotta in conformità ai Principi Italiani di Valutazione (PIV) 
+            emanati dall'Organismo Italiano di Valutazione (OIV) e agli International Valuation Standards (IVS).
+        </div>
     </div>
 
     <div class="page-break"></div>
@@ -388,11 +396,53 @@ export function generateReportHTML(data: any): string {
     <div class="section">
         <div class="section-title">4. Metodologia di Valutazione</div>
         
-        <div class="subsection-title">4.1 Metodo Applicato: ${metodiLabels[params.metodo_principale]}</div>
+        <div class="subsection-title">4.1 Parametri di Valutazione</div>
+        <table class="info-table">
+            <tr>
+                <td>Metodo di Valutazione:</td>
+                <td><strong>${getMetodoLabel(params.metodo_principale)}</strong></td>
+            </tr>
+            <tr>
+                <td>Quota Valutata:</td>
+                <td><strong>${formatPercent(params.percentuale_quota)}</strong></td>
+            </tr>
+            ${params.tasso_capitalizzazione ? `
+            <tr>
+                <td>Tasso di Capitalizzazione:</td>
+                <td>${formatPercent(params.tasso_capitalizzazione)}</td>
+            </tr>
+            ` : ''}
+            ${params.wacc ? `
+            <tr>
+                <td>WACC (Costo Medio Capitale):</td>
+                <td>${formatPercent(params.wacc)}</td>
+            </tr>
+            ` : ''}
+            ${params.tasso_crescita ? `
+            <tr>
+                <td>Tasso di Crescita Perpetuo:</td>
+                <td>${formatPercent(params.tasso_crescita)}</td>
+            </tr>
+            ` : ''}
+            ${params.dloc_percentuale > 0 ? `
+            <tr>
+                <td>DLOC (Discount Lack of Control):</td>
+                <td><strong style="color: #dc2626;">${formatPercent(params.dloc_percentuale)}</strong></td>
+            </tr>
+            ` : ''}
+            ${params.dlom_percentuale > 0 ? `
+            <tr>
+                <td>DLOM (Discount Lack of Marketability):</td>
+                <td><strong style="color: #dc2626;">${formatPercent(params.dlom_percentuale)}</strong></td>
+            </tr>
+            ` : ''}
+        </table>
+        
+        <div class="subsection-title">4.2 Metodologia Applicata</div>
         ${renderMethodologyExplanation(params.metodo_principale, result)}
         
         ${params.dloc_percentuale > 0 || params.dlom_percentuale > 0 ? `
-        <div class="subsection-title">4.2 Discount Applicati</div>
+        <div class="subsection-title">4.3 Motivazioni Discount Applicati</div>
         ${params.dloc_percentuale > 0 ? `
         <div class="highlight-box">
             <strong>DLOC (Discount for Lack of Control): ${formatPercent(params.dloc_percentuale)}</strong><br>
@@ -457,7 +507,7 @@ export function generateReportHTML(data: any): string {
     <div class="section">
         <div class="section-title">6. Conclusioni</div>
         <p>
-            Sulla base dell'analisi condotta e dell'applicazione del metodo ${metodiLabels[params.metodo_principale]},
+            Sulla base dell'analisi condotta e dell'applicazione del metodo <strong>${getMetodoLabel(params.metodo_principale)}</strong>,
             il valore economico della quota pari al ${formatPercent(params.percentuale_quota)} del capitale sociale
             di ${company.ragione_sociale} può essere stimato in:
         </p>
