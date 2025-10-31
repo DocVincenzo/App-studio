@@ -2,9 +2,12 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { calculateValuation, calculateIndices, sensitivityAnalysis, type FinancialData, type ValuationParams } from './valuation-engine'
+import { processPDFBilancio, validateParsedData } from './pdf-parser'
 
 type Bindings = {
   DB: D1Database;
+  STORAGE: R2Bucket;
+  AI: any;
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -138,6 +141,125 @@ app.post('/api/companies/:id/statements', async (c) => {
   ).run()
   
   return c.json({ id: result.meta.last_row_id, ...body })
+})
+
+// ================================
+// API ROUTES - PDF UPLOAD & PARSING
+// ================================
+
+// Upload PDF bilancio e parsing automatico
+app.post('/api/companies/:id/statements/upload-pdf', async (c) => {
+  const companyId = c.req.param('id')
+  
+  try {
+    // Parse multipart form data
+    const formData = await c.req.formData()
+    const file = formData.get('pdf') as File
+    
+    if (!file || file.type !== 'application/pdf') {
+      return c.json({ error: 'File PDF richiesto' }, 400)
+    }
+    
+    // Limite dimensione 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      return c.json({ error: 'File troppo grande (max 10MB)' }, 400)
+    }
+    
+    // Leggi contenuto PDF
+    const pdfBuffer = await file.arrayBuffer()
+    
+    // Upload to R2 Storage
+    const filename = `bilanci/${companyId}/${Date.now()}-${file.name}`
+    await c.env.STORAGE.put(filename, pdfBuffer, {
+      httpMetadata: {
+        contentType: 'application/pdf'
+      }
+    })
+    
+    // Parsing automatico con AI
+    const parsedData = await processPDFBilancio(pdfBuffer, c.env.AI)
+    
+    // Validazione dati parsati
+    const validation = validateParsedData(parsedData)
+    
+    // Salva nel database documents
+    const docResult = await c.env.DB.prepare(`
+      INSERT INTO documents (valuation_id, tipo, nome_file, dimensione, mime_type, url_storage)
+      VALUES (?, 'bilancio', ?, ?, 'application/pdf', ?)
+    `).bind(
+      null, // valuation_id sarà aggiunto dopo
+      file.name,
+      file.size,
+      filename
+    ).run()
+    
+    return c.json({
+      success: true,
+      document_id: docResult.meta.last_row_id,
+      storage_url: filename,
+      parsed_data: parsedData,
+      validation: validation,
+      message: validation.valid 
+        ? 'PDF parsato con successo' 
+        : 'PDF parsato con errori - verifica i dati'
+    })
+  } catch (error) {
+    console.error('Error processing PDF:', error)
+    return c.json({ 
+      error: 'Errore nel processing del PDF: ' + (error as Error).message 
+    }, 500)
+  }
+})
+
+// Get PDF from storage
+app.get('/api/documents/:filename(*)', async (c) => {
+  const filename = c.req.param('filename')
+  
+  try {
+    const object = await c.env.STORAGE.get(filename)
+    
+    if (!object) {
+      return c.json({ error: 'File non trovato' }, 404)
+    }
+    
+    return new Response(object.body, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="${filename.split('/').pop()}"`
+      }
+    })
+  } catch (error) {
+    console.error('Error fetching document:', error)
+    return c.json({ error: 'Errore nel recupero del documento' }, 500)
+  }
+})
+
+// Preview/validate PDF before parsing (solo estrazione testo)
+app.post('/api/pdf/preview', async (c) => {
+  try {
+    const formData = await c.req.formData()
+    const file = formData.get('pdf') as File
+    
+    if (!file || file.type !== 'application/pdf') {
+      return c.json({ error: 'File PDF richiesto' }, 400)
+    }
+    
+    const pdfBuffer = await file.arrayBuffer()
+    
+    // Solo estrazione testo per preview
+    const { extractTextFromPDF } = await import('./pdf-parser')
+    const extractedText = await extractTextFromPDF(pdfBuffer, c.env.AI)
+    
+    return c.json({
+      filename: file.name,
+      size: file.size,
+      text_preview: extractedText.substring(0, 1000) + '...',
+      pages_detected: Math.ceil(extractedText.length / 3000) // stima
+    })
+  } catch (error) {
+    console.error('Error previewing PDF:', error)
+    return c.json({ error: 'Errore nella preview del PDF' }, 500)
+  }
 })
 
 // ========================

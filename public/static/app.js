@@ -289,16 +289,74 @@ function renderStep2_Statements() {
 
     <div class="mb-6">
       <h3 class="font-bold text-lg mb-4">Bilanci Inseriti: ${valuationData.statements.length}</h3>
-      ${valuationData.statements.map(s => `
+      ${valuationData.statements.length > 0 ? valuationData.statements.map(s => `
         <div class="p-3 bg-gray-50 rounded mb-2 flex justify-between items-center">
           <span><strong>${s.anno}</strong> - ${s.tipo} (${s.data_riferimento})</span>
           <span class="text-sm">Patrimonio Netto: €${formatNumber(s.patrimonio_netto)}</span>
         </div>
-      `).join('')}
+      `).join('') : '<p class="text-gray-500 italic">Nessun bilancio inserito</p>'}
     </div>
 
-    <button onclick="showAddStatementForm()" class="btn-primary mb-6">
-      <i class="fas fa-plus mr-2"></i>Aggiungi Bilancio
+    <!-- Upload PDF Section -->
+    <div class="mb-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border-2 border-blue-200">
+      <div class="flex items-start mb-4">
+        <i class="fas fa-magic text-3xl text-blue-600 mr-4 mt-1"></i>
+        <div class="flex-1">
+          <h3 class="font-bold text-xl mb-2 text-blue-900">
+            <i class="fas fa-sparkles mr-2"></i>Acquisizione Automatica da PDF
+          </h3>
+          <p class="text-gray-700 mb-4">
+            Carica il PDF del bilancio e il sistema estrarrà automaticamente tutti i dati 
+            usando intelligenza artificiale. Riduci i tempi di inserimento del 90%!
+          </p>
+        </div>
+      </div>
+
+      <!-- Drag & Drop Zone -->
+      <div id="pdf-drop-zone" 
+           class="border-3 border-dashed border-blue-300 rounded-lg p-8 text-center bg-white hover:bg-blue-50 transition-all cursor-pointer"
+           onclick="document.getElementById('pdf-file-input').click()">
+        <i class="fas fa-cloud-upload-alt text-6xl text-blue-400 mb-4"></i>
+        <p class="text-lg font-semibold text-gray-700 mb-2">
+          Trascina qui il PDF del bilancio
+        </p>
+        <p class="text-sm text-gray-500 mb-4">oppure clicca per selezionare</p>
+        <p class="text-xs text-gray-400">Formato: PDF | Dimensione max: 10MB</p>
+        <input type="file" 
+               id="pdf-file-input" 
+               accept="application/pdf" 
+               class="hidden" 
+               onchange="handlePDFUpload(event)">
+      </div>
+
+      <!-- Upload Progress -->
+      <div id="upload-progress" class="hidden mt-4">
+        <div class="bg-blue-100 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <span class="font-semibold text-blue-800">
+              <i class="fas fa-spinner fa-spin mr-2"></i>Elaborazione in corso...
+            </span>
+            <span id="upload-status" class="text-sm text-blue-600">0%</span>
+          </div>
+          <div class="w-full bg-blue-200 rounded-full h-2">
+            <div id="upload-bar" class="bg-blue-600 h-2 rounded-full transition-all" style="width: 0%"></div>
+          </div>
+          <p class="text-xs text-blue-600 mt-2">
+            Estrazione dati con AI - attendere...
+          </p>
+        </div>
+      </div>
+
+      <!-- Parsed Data Preview -->
+      <div id="parsed-data-preview" class="hidden mt-4"></div>
+    </div>
+
+    <div class="text-center mb-6">
+      <span class="text-gray-500">oppure</span>
+    </div>
+
+    <button onclick="showAddStatementForm()" class="btn-secondary mb-6 w-full">
+      <i class="fas fa-keyboard mr-2"></i>Inserisci Manualmente i Dati
     </button>
 
     <div id="add-statement-form" class="hidden p-6 bg-gray-50 rounded-lg">
@@ -958,3 +1016,295 @@ function formatNumber(num) {
   if (num === null || num === undefined) return '0';
   return Math.round(num).toLocaleString('it-IT');
 }
+
+// =========================
+// PDF UPLOAD & PARSING
+// =========================
+
+async function handlePDFUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // Validazione
+  if (file.type !== 'application/pdf') {
+    alert('Seleziona un file PDF valido');
+    return;
+  }
+  
+  if (file.size > 10 * 1024 * 1024) {
+    alert('File troppo grande. Dimensione massima: 10MB');
+    return;
+  }
+  
+  // Mostra progress bar
+  document.getElementById('upload-progress').classList.remove('hidden');
+  document.getElementById('parsed-data-preview').classList.add('hidden');
+  
+  const progressBar = document.getElementById('upload-bar');
+  const progressStatus = document.getElementById('upload-status');
+  
+  // Animazione progress
+  let progress = 0;
+  const progressInterval = setInterval(() => {
+    progress += Math.random() * 15;
+    if (progress > 90) progress = 90;
+    progressBar.style.width = `${progress}%`;
+    progressStatus.textContent = `${Math.round(progress)}%`;
+  }, 500);
+  
+  try {
+    // Upload e parsing
+    const formData = new FormData();
+    formData.append('pdf', file);
+    
+    const response = await axios.post(
+      `/api/companies/${valuationData.company.id}/statements/upload-pdf`,
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      }
+    );
+    
+    clearInterval(progressInterval);
+    progressBar.style.width = '100%';
+    progressStatus.textContent = '100%';
+    
+    setTimeout(() => {
+      document.getElementById('upload-progress').classList.add('hidden');
+      
+      // Mostra preview dati parsati
+      showParsedDataPreview(response.data);
+    }, 500);
+    
+  } catch (error) {
+    clearInterval(progressInterval);
+    document.getElementById('upload-progress').classList.add('hidden');
+    
+    console.error('Upload error:', error);
+    alert('Errore nell\'elaborazione del PDF: ' + (error.response?.data?.error || error.message));
+  }
+}
+
+function showParsedDataPreview(data) {
+  const preview = document.getElementById('parsed-data-preview');
+  const parsed = data.parsed_data;
+  const validation = data.validation;
+  
+  let html = `
+    <div class="bg-white rounded-lg p-6 border-2 ${validation.valid ? 'border-green-500' : 'border-yellow-500'}">
+      <div class="flex items-center mb-4">
+        <i class="fas ${validation.valid ? 'fa-check-circle text-green-600' : 'fa-exclamation-triangle text-yellow-600'} text-3xl mr-3"></i>
+        <div>
+          <h3 class="font-bold text-lg">
+            ${validation.valid ? 'Dati Estratti con Successo!' : 'Dati Estratti - Verifica Necessaria'}
+          </h3>
+          <p class="text-sm text-gray-600">
+            Confidenza: ${Math.round((parsed.parsing_confidence || 0.8) * 100)}%
+          </p>
+        </div>
+      </div>
+  `;
+  
+  // Warnings
+  if (validation.warnings && validation.warnings.length > 0) {
+    html += `
+      <div class="mb-4 p-3 bg-yellow-50 border-l-4 border-yellow-400 rounded">
+        <p class="font-semibold text-yellow-800 mb-2">
+          <i class="fas fa-exclamation-circle mr-2"></i>Attenzione
+        </p>
+        <ul class="text-sm text-yellow-700 list-disc list-inside">
+          ${validation.warnings.map(w => `<li>${w}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+  
+  // Errors
+  if (validation.errors && validation.errors.length > 0) {
+    html += `
+      <div class="mb-4 p-3 bg-red-50 border-l-4 border-red-400 rounded">
+        <p class="font-semibold text-red-800 mb-2">
+          <i class="fas fa-times-circle mr-2"></i>Errori
+        </p>
+        <ul class="text-sm text-red-700 list-disc list-inside">
+          ${validation.errors.map(e => `<li>${e}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+  
+  // Dati estratti
+  html += `
+    <div class="grid md:grid-cols-2 gap-4 mb-4">
+      <div class="p-3 bg-gray-50 rounded">
+        <p class="text-xs text-gray-500 mb-1">Anno</p>
+        <p class="font-bold">${parsed.anno || 'N/A'}</p>
+      </div>
+      <div class="p-3 bg-gray-50 rounded">
+        <p class="text-xs text-gray-500 mb-1">Patrimonio Netto</p>
+        <p class="font-bold">€${formatNumber(parsed.patrimonio_netto || 0)}</p>
+      </div>
+      <div class="p-3 bg-gray-50 rounded">
+        <p class="text-xs text-gray-500 mb-1">Ricavi Vendite</p>
+        <p class="font-bold">€${formatNumber(parsed.ricavi_vendite || 0)}</p>
+      </div>
+      <div class="p-3 bg-gray-50 rounded">
+        <p class="text-xs text-gray-500 mb-1">Utile/Perdita Esercizio</p>
+        <p class="font-bold">€${formatNumber(parsed.utile_perdita_esercizio || 0)}</p>
+      </div>
+    </div>
+    
+    <details class="mb-4">
+      <summary class="cursor-pointer font-semibold text-blue-600 hover:text-blue-800">
+        <i class="fas fa-eye mr-2"></i>Visualizza tutti i dati estratti
+      </summary>
+      <div class="mt-3 p-4 bg-gray-50 rounded text-xs font-mono max-h-64 overflow-y-auto">
+        <pre>${JSON.stringify(parsed, null, 2)}</pre>
+      </div>
+    </details>
+    
+    <div class="flex gap-3">
+      <button onclick="confirmParsedData(${JSON.stringify(data).replace(/"/g, '&quot;')})" 
+              class="btn-primary flex-1">
+        <i class="fas fa-check mr-2"></i>Conferma e Salva Bilancio
+      </button>
+      <button onclick="editParsedData(${JSON.stringify(parsed).replace(/"/g, '&quot;')})" 
+              class="btn-secondary flex-1">
+        <i class="fas fa-edit mr-2"></i>Modifica Dati
+      </button>
+    </div>
+  </div>
+  `;
+  
+  preview.innerHTML = html;
+  preview.classList.remove('hidden');
+}
+
+async function confirmParsedData(data) {
+  const parsed = data.parsed_data;
+  
+  // Prepara dati per salvataggio
+  const statementData = {
+    anno: parsed.anno,
+    tipo: parsed.tipo || 'annuale',
+    data_riferimento: parsed.data_riferimento || `${parsed.anno}-12-31`,
+    immobilizzazioni_immateriali: parsed.immobilizzazioni_immateriali || 0,
+    immobilizzazioni_materiali: parsed.immobilizzazioni_materiali || 0,
+    immobilizzazioni_finanziarie: parsed.immobilizzazioni_finanziarie || 0,
+    attivo_circolante_rimanenze: parsed.attivo_circolante_rimanenze || 0,
+    attivo_circolante_crediti: parsed.attivo_circolante_crediti || 0,
+    attivo_circolante_liquidita: parsed.attivo_circolante_liquidita || 0,
+    ratei_risconti_attivi: parsed.ratei_risconti_attivi || 0,
+    patrimonio_netto: parsed.patrimonio_netto || 0,
+    capitale_sociale: parsed.capitale_sociale || 0,
+    riserve: parsed.riserve || 0,
+    utile_perdita_esercizio: parsed.utile_perdita_esercizio || 0,
+    fondi_rischi_oneri: parsed.fondi_rischi_oneri || 0,
+    tfr: parsed.tfr || 0,
+    debiti_finanziari: parsed.debiti_finanziari || 0,
+    debiti_fornitori: parsed.debiti_fornitori || 0,
+    debiti_tributari: parsed.debiti_tributari || 0,
+    altri_debiti: parsed.altri_debiti || 0,
+    ratei_risconti_passivi: parsed.ratei_risconti_passivi || 0,
+    ricavi_vendite: parsed.ricavi_vendite || 0,
+    altri_ricavi: parsed.altri_ricavi || 0,
+    costi_materie_prime: parsed.costi_materie_prime || 0,
+    costi_servizi: parsed.costi_servizi || 0,
+    costi_godimento_beni_terzi: parsed.costi_godimento_beni_terzi || 0,
+    costi_personale: parsed.costi_personale || 0,
+    ammortamenti_svalutazioni: parsed.ammortamenti_svalutazioni || 0,
+    accantonamenti: parsed.accantonamenti || 0,
+    oneri_diversi_gestione: parsed.oneri_diversi_gestione || 0,
+    proventi_finanziari: parsed.proventi_finanziari || 0,
+    oneri_finanziari: parsed.oneri_finanziari || 0,
+    rettifiche_valore_attivita_finanziarie: parsed.rettifiche_valore_attivita_finanziarie || 0,
+    proventi_oneri_straordinari: parsed.proventi_oneri_straordinari || 0,
+    imposte_esercizio: parsed.imposte_esercizio || 0
+  };
+  
+  try {
+    const response = await axios.post(
+      `/api/companies/${valuationData.company.id}/statements`,
+      statementData
+    );
+    
+    valuationData.statements.push(response.data);
+    
+    alert('✅ Bilancio salvato con successo!');
+    updateWizardUI();
+  } catch (error) {
+    console.error('Error saving statement:', error);
+    alert('Errore nel salvataggio del bilancio: ' + (error.response?.data?.error || error.message));
+  }
+}
+
+function editParsedData(parsed) {
+  // Mostra form manuale pre-compilato con dati parsati
+  document.getElementById('add-statement-form').classList.remove('hidden');
+  
+  // Pre-compila i campi
+  if (parsed.anno) document.getElementById('stmt-anno').value = parsed.anno;
+  if (parsed.tipo) document.getElementById('stmt-tipo').value = parsed.tipo;
+  if (parsed.data_riferimento) document.getElementById('stmt-data').value = parsed.data_riferimento;
+  if (parsed.immobilizzazioni_materiali) document.getElementById('immob-materiali').value = parsed.immobilizzazioni_materiali;
+  if (parsed.attivo_circolante_crediti) document.getElementById('crediti').value = parsed.attivo_circolante_crediti;
+  if (parsed.attivo_circolante_liquidita) document.getElementById('liquidita').value = parsed.attivo_circolante_liquidita;
+  if (parsed.patrimonio_netto) document.getElementById('patrimonio-netto').value = parsed.patrimonio_netto;
+  if (parsed.capitale_sociale) document.getElementById('capitale-sociale-stmt').value = parsed.capitale_sociale;
+  if (parsed.riserve) document.getElementById('riserve').value = parsed.riserve;
+  if (parsed.utile_perdita_esercizio) document.getElementById('utile-esercizio').value = parsed.utile_perdita_esercizio;
+  if (parsed.debiti_finanziari) document.getElementById('debiti-finanziari').value = parsed.debiti_finanziari;
+  if (parsed.debiti_fornitori) document.getElementById('debiti-fornitori').value = parsed.debiti_fornitori;
+  if (parsed.debiti_tributari) document.getElementById('debiti-tributari').value = parsed.debiti_tributari;
+  if (parsed.ricavi_vendite) document.getElementById('ricavi').value = parsed.ricavi_vendite;
+  if (parsed.costi_servizi) document.getElementById('costi-servizi').value = parsed.costi_servizi;
+  if (parsed.costi_godimento_beni_terzi) document.getElementById('costi-godimento').value = parsed.costi_godimento_beni_terzi;
+  if (parsed.ammortamenti_svalutazioni) document.getElementById('ammortamenti').value = parsed.ammortamenti_svalutazioni;
+  if (parsed.oneri_finanziari) document.getElementById('oneri-finanziari').value = parsed.oneri_finanziari;
+  if (parsed.imposte_esercizio) document.getElementById('imposte').value = parsed.imposte_esercizio;
+  
+  // Scroll to form
+  document.getElementById('add-statement-form').scrollIntoView({ behavior: 'smooth' });
+  
+  // Nascondi preview
+  document.getElementById('parsed-data-preview').classList.add('hidden');
+}
+
+// Drag & Drop handlers
+document.addEventListener('DOMContentLoaded', () => {
+  const dropZone = document.getElementById('pdf-drop-zone');
+  
+  if (dropZone) {
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.add('border-blue-500', 'bg-blue-100');
+      }, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.remove('border-blue-500', 'bg-blue-100');
+      }, false);
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const input = document.getElementById('pdf-file-input');
+        input.files = files;
+        handlePDFUpload({ target: input });
+      }
+    }, false);
+  }
+});
