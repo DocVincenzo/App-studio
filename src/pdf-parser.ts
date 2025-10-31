@@ -57,15 +57,32 @@ export interface ParsedFinancialStatement {
  */
 export async function extractTextFromPDF(pdfBuffer: ArrayBuffer, ai: any): Promise<string> {
   try {
-    // Cloudflare AI non ha ancora OCR nativo, usiamo approccio alternativo
-    // In produzione: usare Cloudflare Vision API o servizio esterno (Tesseract.js, Google Vision)
-    
-    // Per ora: convertiamo PDF in base64 e simuliamo estrazione
-    // In produzione reale: integrare con pdf.js o libreria OCR
+    // Cloudflare AI non ha ancora OCR nativo
+    // Per bilanci XBRL italiani, proviamo a estrarre pattern comuni
     
     console.log('PDF buffer size:', pdfBuffer.byteLength);
     
-    // Simulazione estrazione (da sostituire con vera OCR)
+    // Converti ArrayBuffer in string per cercare pattern testuali
+    const uint8Array = new Uint8Array(pdfBuffer);
+    let extractedText = '';
+    
+    // Cerca pattern nel PDF (molti PDF contengono testo non compresso)
+    for (let i = 0; i < uint8Array.length - 1; i++) {
+      const char = uint8Array[i];
+      // Caratteri stampabili ASCII
+      if ((char >= 32 && char <= 126) || char === 10 || char === 13) {
+        extractedText += String.fromCharCode(char);
+      }
+    }
+    
+    // Se abbiamo estratto testo, usalo
+    if (extractedText.length > 500) {
+      console.log('Extracted text from PDF, length:', extractedText.length);
+      return extractedText;
+    }
+    
+    // Fallback: testo simulato per testing
+    console.warn('Could not extract text from PDF, using simulated data');
     const simulatedText = `
       STATO PATRIMONIALE ATTIVO
       B) IMMOBILIZZAZIONI
